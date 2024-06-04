@@ -1,5 +1,6 @@
 export default async function compareData(doc1 , doc2){
     const differences ={
+        dateCompared:new Date(),
         added:[],
         deleted:[]
     };

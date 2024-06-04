@@ -1,9 +1,10 @@
 import documentData from "../models/docScheme.js"
 import documentData2 from "../models/docScheme2.js";
 import compareData from "./compareData.js";
+import comparisonJSONData from "../models/comparisonData.js";
 
 
-export async function savetoDb (data){
+export async function savetoDb (data , jsonDate){
     const keyMapping={
         "Organisation Name":"OrganisationName",
         "Town/City":"TownCity",
@@ -35,22 +36,25 @@ export async function savetoDb (data){
     try{
 
        const transformedDataArray =  transformDataArray(data, keyMapping)
-       
-    
 
      const countDocData = await documentData.countDocuments();
-    const countDocData2 = await documentData2.countDocuments();
+     const countDocData2 = await documentData2.countDocuments();
 
      if(countDocData === 0   && countDocData2 === 0 ){
             await documentData.insertMany(transformedDataArray)
      }
      else if(countDocData > 0 && countDocData2 === 0){
-        await documentData2.insertMany(transformedDataArray)
-       const difference =  compareData(documentData.find(), documentData2.find())
+        if(jsonDate === new Date().getDate() ){
+            await documentData2.insertMany(transformedDataArray)
+            const difference =  compareData(documentData.find(), documentData2.find())
        // Save Difference here in another mongoDB collection  and then send that as result of CLIENT request 
-
-       return difference  
-
+            const DiffDB = new comparisonJSONData(difference)
+            await DiffDB.save()
+            console.log(DiffDB)
+            return difference  
+        }else{
+          return console.log("Sorry NO updated CSV file available , so no new Data will be saved into DB")
+        }  
      }
      else if(countDocData > 0 && countDocData2 > 0){
 
@@ -66,6 +70,9 @@ export async function savetoDb (data){
             await documentData.insertMany(transformedDataArray)
             const difference = compareData(documentData2 , documentData)
             // Drop the Documents in Older Comparison DB collection and add newone HERE
+            comparisonJSONData.deleteMany({})
+            const DiffDB = comparisonJSONData(difference)
+            await DiffDB.save()
             return difference
         }
         else if (dateDiff1 < dateDiff2){
@@ -73,20 +80,14 @@ export async function savetoDb (data){
             await documentData2.insertMany(transformedDataArray)
             const difference = compareData(documentData , documentData2)
             // Drop the Documents in older comparison DB collectiona and add newone HERE
-            
+            const DiffDB = comparisonJSONData(difference)
+            await DiffDB.save()
             return difference
         }else if(dateDiff1 === dateDiff2){
             console.log("No new Update in CSV file as the date is same")
+
         }
 
-        // if(date - (documentData.find()[0].dateProcessed.getDate()) > date - ( documentData2.find()[0].dateProcessed.getDate()) ){
-        //     mongoose.connection.db.dropCollection(documentData)
-        //     await documentData.create(transformedDataArray)
-        // } 
-        // else if(date - (documentData2.find()[0].dateProcessed.getDate()) > date - (documentDate.find()[0].dateProcessed.getDate() )){
-        //     mongoose.connection.db.dropCollection(documentData2)
-        //     await documentData2.create(transformedDataArray)
-        // }
      }
 
         console.log("Data Successfully saved to MongoDB")

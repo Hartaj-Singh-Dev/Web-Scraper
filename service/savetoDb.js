@@ -47,6 +47,8 @@ export async function savetoDb (data){
      else if(countDocData > 0 && countDocData2 === 0){
         await documentData2.insertMany(transformedDataArray)
        const difference =  compareData(documentData.find(), documentData2.find())
+       // Save Difference here in another mongoDB collection  and then send that as result of CLIENT request 
+
        return difference  
 
      }
@@ -63,12 +65,15 @@ export async function savetoDb (data){
             await documentData.deleteMany({});
             await documentData.insertMany(transformedDataArray)
             const difference = compareData(documentData2 , documentData)
+            // Drop the Documents in Older Comparison DB collection and add newone HERE
             return difference
         }
         else if (dateDiff1 < dateDiff2){
             await documentData2.deleteMany({});
             await documentData2.insertMany(transformedDataArray)
             const difference = compareData(documentData , documentData2)
+            // Drop the Documents in older comparison DB collectiona and add newone HERE
+            
             return difference
         }else if(dateDiff1 === dateDiff2){
             console.log("No new Update in CSV file as the date is same")
